@@ -76,17 +76,17 @@ def run_pipeline():
     redis_client.set('dumps', redis_payload)
 
     # Send deltas as message
-    deltas_sorted = sorted(deltas, key=lambda x: x["new_posts"], reverse=True)
+    deltas_sorted = sorted(deltas, key=lambda x: x['new_posts'], reverse=True)
     message = deltas_to_message(deltas_sorted)
-    line_push_message(message)
+    line_push_message(message if message else 'Pipeline produced empty messsage.')
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
+        run_pipeline()
         self.send_response(200)
         self.send_header('Content-type','text/plain')
         self.end_headers()
         self.wfile.write('Hello, world!'.encode('utf-8'))
-        run_pipeline()
         return
 
 if __name__ == '__main__':
