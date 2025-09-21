@@ -28,7 +28,7 @@ def generate(ndjson_string):
                 {ndjson_string}
                 </context>
 
-                Write 5 paragraphs describing what people are talking about, roughly ordered by popularity.
+                Write 5 paragraphs summarizing what is happening that is worth reporting as news, ordered by popularity.
                 Use podcast style Japanese that is suitable for text-to-speech.
                 Focus on speed; do not spend extra effort analyzing. Keep it quick as possible.
                 """),
