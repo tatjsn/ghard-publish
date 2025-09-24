@@ -6,6 +6,10 @@ import re
 import json
 import html
 import redis
+from dotenv import load_dotenv
+
+if __name__ == '__main__':
+    load_dotenv()
 
 configuration = linebot.v3.messaging.Configuration(
     access_token = os.environ['LINE_TOKEN']
