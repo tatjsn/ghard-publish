@@ -67,7 +67,7 @@ def compute_deltas(old_threads, new_threads):
 
 def deltas_to_message(deltas):
     deltas_trimmed = deltas[:10]
-    return '\n'.join([f'{d['title']} ({d['new_posts']})' for d in deltas_trimmed])
+    return '\n'.join([f'{d["title"]} ({d["new_posts"]})' for d in deltas_trimmed])
 
 def run_pipeline():
     # Load new/old threads and compute deltas
