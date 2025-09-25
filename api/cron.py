@@ -6,6 +6,7 @@ import re
 import json
 import html
 import redis
+import argparse
 from dotenv import load_dotenv
 
 if __name__ == '__main__':
@@ -69,11 +70,17 @@ def deltas_to_message(deltas):
     deltas_trimmed = deltas[:10]
     return '\n'.join([f'{d["title"]} ({d["new_posts"]})' for d in deltas_trimmed])
 
-def run_pipeline():
+def run_pipeline(threshold):
     # Load new/old threads and compute deltas
     new_threads = fetch_subback()
     old_threads = json.loads(redis_client.get('dumps').decode('utf-8'))
     deltas = compute_deltas(old_threads, new_threads)
+
+    # Abort if total new posts is under threshold
+    total = sum(d['new_posts'] for d in deltas)
+    if total < threshold:
+        print(f'Abort: Total={total}')
+        return
 
     # Save theads for next comparison
     redis_payload = json.dumps(new_threads, ensure_ascii=False)
@@ -86,7 +93,7 @@ def run_pipeline():
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        run_pipeline()
+        run_pipeline(0)
         self.send_response(200)
         self.send_header('Content-type','text/plain')
         self.end_headers()
@@ -94,4 +101,7 @@ class handler(BaseHTTPRequestHandler):
         return
 
 if __name__ == '__main__':
-    run_pipeline()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("threshold", type=int, help="threshold for push")
+    args = parser.parse_args()
+    run_pipeline(args.threshold)
