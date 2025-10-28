@@ -91,10 +91,12 @@ def run_pipeline(threshold):
     redis_payload = json.dumps(new_threads, ensure_ascii=False)
     redis_client.set('dumps', redis_payload)
 
-    # Send deltas as message
+    # Send top 10 as message and save to redis
     deltas_sorted = sorted(deltas, key=lambda x: x['new_posts'], reverse=True)
     message = deltas_to_message(deltas_sorted)
     line_push_message(message if message else 'Pipeline produced empty messsage.')
+    top_ten = json.dumps(deltas_sorted[:10], ensure_ascii=False)
+    redis_client.set('top_ten', top_ten)
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
