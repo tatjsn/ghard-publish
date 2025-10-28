@@ -46,7 +46,12 @@ def line_push_message(message):
             to=os.environ.get('LINE_USER_ID'),
             messages=[linebot.v3.messaging.TextMessage(text=message)]
         )
-        api_instance.push_message(push_message_request)
+        try:
+            api_instance.push_message(push_message_request)
+        except linebot.v3.messaging.exceptions.ApiException as api_exception:
+            reason = api_exception.reason
+            message = json.loads(api_exception.body)["message"] if api_exception.body else ''
+            print(f'Push Failed: {reason}: {message}')
 
 def compute_deltas(old_threads, new_threads):
     # Map by id for fast lookup
