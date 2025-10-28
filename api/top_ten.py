@@ -16,11 +16,11 @@ def render():
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        run_pipeline(0)
+        payload = render().encode('utf-8')
         self.send_response(200)
         self.send_header('Content-type','text/html')
         self.end_headers()
-        self.wfile.write(render().encode('utf-8'))
+        self.wfile.write(payload)
         return
 
 if __name__ == '__main__':
