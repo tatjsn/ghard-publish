@@ -18,7 +18,7 @@ class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         payload = render().encode('utf-8')
         self.send_response(200)
-        self.send_header('Content-type','text/html')
+        self.send_header('Content-type','text/html; charset=UTF-8')
         self.end_headers()
         self.wfile.write(payload)
         return
