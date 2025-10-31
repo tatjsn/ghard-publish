@@ -7,7 +7,6 @@ import json
 import html
 import redis
 import argparse
-import tweepy
 from dotenv import load_dotenv
 
 if __name__ == '__main__':
@@ -18,13 +17,6 @@ configuration = linebot.v3.messaging.Configuration(
 )
 
 redis_client = redis.from_url(os.environ['REDIS_URL'])
-
-x_client = tweepy.Client(
-    consumer_key=os.environ['X_CONSUMER_KEY'],
-    consumer_secret=os.environ['X_CONSUMER_SECRET'],
-    access_token=os.environ['X_TOKEN'],
-    access_token_secret=os.environ['X_SECRET']
-)
 
 line_pattern = re.compile(r'^<a href="([^/]+)/[^"]*">\d+: (.+) \((\d+)\)</a>')
 
@@ -60,9 +52,6 @@ def line_push_message(message):
             reason = api_exception.reason
             message = json.loads(api_exception.body)["message"] if api_exception.body else ''
             print(f'Push Failed: {reason}: {message}')
-
-def x_post_message(message):
-    x_client.create_tweet(text=message)
 
 def compute_deltas(old_threads, new_threads):
     # Map by id for fast lookup
@@ -105,8 +94,7 @@ def run_pipeline(threshold):
     # Send top 10 as message and save to redis
     deltas_sorted = sorted(deltas, key=lambda x: x['new_posts'], reverse=True)
     message = deltas_to_message(deltas_sorted)
-    # line_push_message(message if message else 'Pipeline produced empty messsage.')
-    x_post_message(message if message else 'Pipeline produced empty messsage.')
+    line_push_message(message if message else 'Pipeline produced empty messsage.')
     top_ten = json.dumps(deltas_sorted[:10], ensure_ascii=False)
     redis_client.set('top_ten', top_ten)
 
