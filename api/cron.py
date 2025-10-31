@@ -62,8 +62,7 @@ def line_push_message(message):
             print(f'Push Failed: {reason}: {message}')
 
 def x_post_message(message):
-    response = x_client.create_tweet(text=message)
-    print(response)
+    x_client.create_tweet(text=message)
 
 def compute_deltas(old_threads, new_threads):
     # Map by id for fast lookup
