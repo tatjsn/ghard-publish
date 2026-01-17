@@ -37,23 +37,26 @@ def generate_summary(deltas_json):
                 - "title": forum thread title
                 - "new_posts": number of new posts in the last hour
 
-                Extract the underlying hot topics from the data.
+                Using ONLY information available in the thread titles and their posting volume,
+                extract the underlying hot topics discussed in the past hour.
                 Merge related threads into single topics where appropriate.
 
-                Output a Japanese summary in TRADER HEADLINE style.
+                For each topic, include:
+                - the specific issue or angle being discussed
+                - the implied stance or tone AS SUGGESTED BY TITLE WORDING ONLY
+                  (e.g. 批判的・失望・期待・懐疑・皮肉・肯定的)
 
                 Style rules (strict):
                 - No preface, no time expressions, no narrative.
-                - No evaluative or descriptive verbs
-                - Prefer noun phrases only; verbs should be avoided.
-                - Use short clauses separated by commas or "／".
+                - Do NOT infer sentiment from imagined post contents.
+                - Avoid vague keywords alone; each topic must contain an angle.
+                - Prefer noun phrases; minimal verbs only if unavoidable.
+                - Use short clauses separated by “／” or commas.
                 - Do NOT quote or closely paraphrase thread titles.
-                - Do NOT explain significance or background.
 
                 Content rules:
                 - Weight topics by higher "new_posts".
                 - Reduce or ignore recurring/series threads.
-                - Focus on what topics exist, not how people feel about them.
 
                 Constraints:
                 - Under 280 Japanese characters (Twitter/X free tier).
