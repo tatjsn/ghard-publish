@@ -51,15 +51,16 @@ def generate_summary(deltas_json):
                 - Do NOT infer sentiment from imagined post contents.
                 - Avoid vague keywords alone; each topic must contain an angle.
                 - Prefer noun phrases; minimal verbs only if unavoidable.
-                - Use short clauses separated by “／” or commas.
+                - Use short clauses separated by “／”.
                 - Do NOT quote or closely paraphrase thread titles.
 
                 Content rules:
                 - Weight topics by higher "new_posts".
                 - Reduce or ignore recurring/series threads.
 
-                Constraints:
-                - Under 280 Japanese characters (Twitter/X free tier).
+                Length constraints:
+                - Target length: 200–260 Japanese characters.
+                - Hard limit: under 280 Japanese characters (Twitter/X free tier).
 
                 Input:
                 {deltas_json}"""),
