@@ -78,7 +78,7 @@ def generate_summary(deltas_json):
         model=model,
         contents=contents,
         config=generate_content_config,
-    ):
+    )
     return response.text
 
 def extract_threads(blob):
