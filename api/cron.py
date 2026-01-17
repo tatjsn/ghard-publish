@@ -37,30 +37,24 @@ def generate_summary(deltas_json):
                 - "title": forum thread title
                 - "new_posts": number of new posts in the last hour
 
-                Using ONLY information available in the thread titles and their posting volume,
-                extract the underlying hot topics discussed in the past hour.
-                Merge related threads into single topics where appropriate.
+                Using ONLY information from the thread titles and their posting volume, extract the underlying hot topics of the past hour. Merge related threads into single topics where appropriate.
 
-                For each topic, include:
-                - the specific issue or angle being discussed
-                - the implied stance or tone AS SUGGESTED BY TITLE WORDING ONLY
-                  (e.g. 批判的・失望・期待・懐疑・皮肉・肯定的)
+                Output a Japanese summary in the following style:
 
-                Style rules (strict):
-                - No preface, no time expressions, no narrative.
-                - Do NOT infer sentiment from imagined post contents.
-                - Avoid vague keywords alone; each topic must contain an angle.
-                - Prefer noun phrases; minimal verbs only if unavoidable.
-                - Use short clauses separated by “／”.
-                - Do NOT quote or closely paraphrase thread titles.
-
-                Content rules:
+                - Each topic must be exactly: [Noun][4-character compressed kanji phrase]
+                  - Noun = main topic
+                  - 4-character compressed kanji phrase = a pseudo-idiom invented from title wording only that expresses the angle or sentiment
+                - No spaces between noun and 4-character phrase.
+                - Separate multiple topics with "／".
+                - No verbs, no preface, no narrative, no filler.
+                - Do NOT quote or paraphrase thread titles literally.
+                - Do NOT infer sentiment from imagined posts; only use what is suggested by titles.
                 - Weight topics by higher "new_posts".
                 - Reduce or ignore recurring/series threads.
 
                 Length constraints:
-                - Target length: 200–260 Japanese characters.
-                - Hard limit: under 280 Japanese characters (Twitter/X free tier).
+                - Target: 200–260 Japanese characters.
+                - Hard limit: under 280 characters (Twitter/X free tier).
 
                 Input:
                 {deltas_json}"""),
