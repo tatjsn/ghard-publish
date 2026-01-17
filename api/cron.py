@@ -7,6 +7,8 @@ import json
 import html
 import redis
 import argparse
+from google import genai
+from google.genai import types
 from dotenv import load_dotenv
 
 if __name__ == '__main__':
@@ -19,6 +21,65 @@ configuration = linebot.v3.messaging.Configuration(
 redis_client = redis.from_url(os.environ['REDIS_URL'])
 
 line_pattern = re.compile(r'^<a href="([^/]+)/[^"]*">\d+: (.+) \((\d+)\)</a>')
+
+def generate_summary(deltas_json):
+    client = genai.Client(
+        api_key=os.environ.get("GEMINI_API_KEY"),
+    )
+
+    model = "gemini-2.5-flash"
+    contents = [
+        types.Content(
+            role="user",
+            parts=[
+                types.Part.from_text(text=f"""
+                You are given a JSON array of objects. Each object has:
+                - "title": forum thread title
+                - "new_posts": number of new posts in the last hour
+
+                Extract the underlying hot topics from the data.
+                Merge related threads into single topics where appropriate.
+
+                Output a Japanese summary in TRADER HEADLINE style.
+
+                Style rules (strict):
+                - No preface, no time expressions, no narrative.
+                - No evaluative or descriptive verbs
+                - Prefer noun phrases only; verbs should be avoided.
+                - Use short clauses separated by commas or "／".
+                - Do NOT quote or closely paraphrase thread titles.
+                - Do NOT explain significance or background.
+
+                Content rules:
+                - Weight topics by higher "new_posts".
+                - Reduce or ignore recurring/series threads.
+                - Focus on what topics exist, not how people feel about them.
+
+                Constraints:
+                - Under 280 Japanese characters (Twitter/X free tier).
+
+                Input:
+                {deltas_json}"""),
+            ],
+        ),
+    ]
+    tools = [
+        types.Tool(googleSearch=types.GoogleSearch(
+        )),
+    ]
+    generate_content_config = types.GenerateContentConfig(
+        thinking_config = types.ThinkingConfig(
+            thinking_budget=-1,
+        ),
+        tools=tools,
+    )
+
+    response = client.models.generate_content(
+        model=model,
+        contents=contents,
+        config=generate_content_config,
+    ):
+    return response.text
 
 def extract_threads(blob):
     threads = []
@@ -93,10 +154,17 @@ def run_pipeline(threshold):
 
     # Send top 10 as message and save to redis
     deltas_sorted = sorted(deltas, key=lambda x: x['new_posts'], reverse=True)
+
     message = deltas_to_message(deltas_sorted)
-    line_push_message(message if message else 'Pipeline produced empty messsage.')
+    redis_client.set('legacy_message', message if message else 'Pipeline produced empty messsage.')
+
     top_ten = json.dumps(deltas_sorted[:10], ensure_ascii=False)
     redis_client.set('top_ten', top_ten)
+
+
+    summary = generate_summary(top_ten)
+    line_push_message(summary if summary else 'Pipeline produced empty messsage.')
+
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
