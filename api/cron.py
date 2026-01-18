@@ -10,6 +10,7 @@ import argparse
 from google import genai
 from google.genai import types
 from dotenv import load_dotenv
+from counter import count_x_characters_limited
 
 if __name__ == '__main__':
     load_dotenv()
@@ -53,8 +54,8 @@ def generate_summary(deltas_json):
                 - Reduce or ignore recurring/series threads.
 
                 Length constraints:
-                - Target: 200–260 Japanese characters.
-                - Hard limit: under 280 characters (Twitter/X free tier).
+                - Target: 120-130 Japanese characters.
+                - Hard limit: under 140 Japanese characters (Twitter/X free tier).
 
                 Input:
                 {deltas_json}"""),
@@ -161,7 +162,8 @@ def run_pipeline(threshold):
 
 
     summary = generate_summary(top_ten)
-    line_push_message(summary if summary else 'Pipeline produced empty messsage.')
+    line_push_message(f'{summary} ({count_x_characters_limited(summary)})'
+                      if summary else 'Pipeline produced empty messsage.')
 
 
 class handler(BaseHTTPRequestHandler):
