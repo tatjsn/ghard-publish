@@ -1,44 +1,34 @@
 import os
+from textwrap import dedent
 from google import genai
 from google.genai import types
 
-def generate_summary(deltas_json):
+SUMMARY_PROMPT = dedent("""
+以下の JSON 配列には掲示板スレッドタイトルが入っています。
+タイトルを圧縮して、全角「／」でつなぎ、1つのテキストにしてください。
+圧縮ルール：
+- 冗長表現や装飾は削除
+- スレ番号不要
+- 簡潔に表現
+- NSFWはYahoo!トピック程度に安全化
+- 情報は可能な限り維持
+
+JSONやリスト形式で返さず、**必ず文字列だけ**で出力すること。
+
+JSON データ：
+{input_json}
+""")
+
+def generate_summary(titles_json):
     client = genai.Client(
         api_key=os.environ.get("GEMINI_API_KEY"),
     )
-
+    prompt = SUMMARY_PROMPT.format(input_json=titles_json)
     model = "gemini-2.5-flash"
     contents = [
         types.Content(
             role="user",
-            parts=[
-                types.Part.from_text(text=f"""
-                You are given a JSON array of objects. Each object has:
-                - "title": forum thread title
-                - "new_posts": number of new posts in the last hour
-
-                Using ONLY information from the thread titles and their posting volume, extract the underlying hot topics of the past hour. Merge related threads into single topics where appropriate.
-
-                Output a Japanese summary in the following style:
-
-                - Each topic must be exactly: [Noun][4-character compressed kanji phrase]
-                  - Noun = main topic
-                  - 4-character compressed kanji phrase = a pseudo-idiom invented from title wording only that expresses the angle or sentiment
-                - No spaces between noun and 4-character phrase.
-                - Separate multiple topics with "／".
-                - No verbs, no preface, no narrative, no filler.
-                - Do NOT quote or paraphrase thread titles literally.
-                - Do NOT infer sentiment from imagined posts; only use what is suggested by titles.
-                - Weight topics by higher "new_posts".
-                - Reduce or ignore recurring/series threads.
-
-                Length constraints:
-                - Target: 120-130 Japanese characters.
-                - Hard limit: under 140 Japanese characters (Twitter/X free tier).
-
-                Input:
-                {deltas_json}"""),
-            ],
+            parts=[types.Part.from_text(text=prompt)],
         ),
     ]
     tools = [
@@ -51,7 +41,6 @@ def generate_summary(deltas_json):
         ),
         tools=tools,
     )
-
     response = client.models.generate_content(
         model=model,
         contents=contents,

@@ -42,7 +42,8 @@ def process_thread_deltas(threshold):
     redis_client.set('top_ten', top_ten)
 
 
-    summary = generate_summary(top_ten)
+    titles = json.dumps([item["title"] for item in deltas_sorted[:10]])
+    summary = generate_summary(titles)
     line_push_message(f'{summary} ({count_x_characters_limited(summary)})'
                       if summary else 'Pipeline produced empty messsage.')
 

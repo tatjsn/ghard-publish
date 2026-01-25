@@ -1,4 +1,6 @@
 import os
+import re
+import html
 import requests
 
 line_pattern = re.compile(r'^<a href="([^/]+)/[^"]*">\d+: (.+) \((\d+)\)</a>')
