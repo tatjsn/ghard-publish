@@ -1,141 +1,22 @@
 from http.server import BaseHTTPRequestHandler
 import os
-import linebot.v3.messaging
-import requests
 import re
 import json
 import html
 import redis
 import argparse
-from google import genai
-from google.genai import types
 from dotenv import load_dotenv
 from counter import count_x_characters_limited
+from line import line_push_message
+from llm import generate_summary
+from forum import fetch_subback, compute_deltas, deltas_to_message
 
 if __name__ == '__main__':
     load_dotenv()
 
-configuration = linebot.v3.messaging.Configuration(
-    access_token = os.environ['LINE_TOKEN']
-)
-
 redis_client = redis.from_url(os.environ['REDIS_URL'])
 
-line_pattern = re.compile(r'^<a href="([^/]+)/[^"]*">\d+: (.+) \((\d+)\)</a>')
-
-def generate_summary(deltas_json):
-    client = genai.Client(
-        api_key=os.environ.get("GEMINI_API_KEY"),
-    )
-
-    model = "gemini-2.5-flash"
-    contents = [
-        types.Content(
-            role="user",
-            parts=[
-                types.Part.from_text(text=f"""
-                You are given a JSON array of objects. Each object has:
-                - "title": forum thread title
-                - "new_posts": number of new posts in the last hour
-
-                Using ONLY information from the thread titles and their posting volume, extract the underlying hot topics of the past hour. Merge related threads into single topics where appropriate.
-
-                Output a Japanese summary in the following style:
-
-                - Each topic must be exactly: [Noun][4-character compressed kanji phrase]
-                  - Noun = main topic
-                  - 4-character compressed kanji phrase = a pseudo-idiom invented from title wording only that expresses the angle or sentiment
-                - No spaces between noun and 4-character phrase.
-                - Separate multiple topics with "／".
-                - No verbs, no preface, no narrative, no filler.
-                - Do NOT quote or paraphrase thread titles literally.
-                - Do NOT infer sentiment from imagined posts; only use what is suggested by titles.
-                - Weight topics by higher "new_posts".
-                - Reduce or ignore recurring/series threads.
-
-                Length constraints:
-                - Target: 120-130 Japanese characters.
-                - Hard limit: under 140 Japanese characters (Twitter/X free tier).
-
-                Input:
-                {deltas_json}"""),
-            ],
-        ),
-    ]
-    tools = [
-        types.Tool(googleSearch=types.GoogleSearch(
-        )),
-    ]
-    generate_content_config = types.GenerateContentConfig(
-        thinking_config = types.ThinkingConfig(
-            thinking_budget=-1,
-        ),
-        tools=tools,
-    )
-
-    response = client.models.generate_content(
-        model=model,
-        contents=contents,
-        config=generate_content_config,
-    )
-    return response.text
-
-def extract_threads(blob):
-    threads = []
-    for line in blob.splitlines():
-        m = line_pattern.match(html.unescape(line))
-        if not m:
-            continue
-        thread_id, title, posts = m.groups()
-        threads.append({
-            "id": thread_id,
-            "title": title.strip(),
-            "posts": int(posts)
-        })
-    return threads
-
-def fetch_subback():
-    data_url = os.environ['SUBBACK_URL']
-    res = requests.get(data_url)
-    return extract_threads(res.text)
-
-def line_push_message(message):
-    with linebot.v3.messaging.ApiClient(configuration) as api_client:
-        api_instance = linebot.v3.messaging.MessagingApi(api_client)
-        push_message_request = linebot.v3.messaging.PushMessageRequest(
-            to=os.environ.get('LINE_USER_ID'),
-            messages=[linebot.v3.messaging.TextMessage(text=message)]
-        )
-        try:
-            api_instance.push_message(push_message_request)
-        except linebot.v3.messaging.exceptions.ApiException as api_exception:
-            reason = api_exception.reason
-            message = json.loads(api_exception.body)["message"] if api_exception.body else ''
-            print(f'Push Failed: {reason}: {message}')
-
-def compute_deltas(old_threads, new_threads):
-    # Map by id for fast lookup
-    old_map = {t["id"]: t for t in old_threads}
-    new_map = {t["id"]: t for t in new_threads}
-
-    deltas = []
-
-    for thread_id, t_new in new_map.items():
-        old_posts = old_map.get(thread_id, {}).get("posts", 0)
-        delta = t_new["posts"] - old_posts
-        if delta > 0:  # only keep threads that grew
-            deltas.append({
-                "title": t_new["title"],
-                "new_posts": delta,
-            })
-
-    return deltas
-
-def deltas_to_message(deltas):
-    deltas_trimmed = deltas[:10]
-    return '\n'.join([f'{d["title"]} ({d["new_posts"]})' for d in deltas_trimmed])
-
-def run_pipeline(threshold):
+def process_thread_deltas(threshold):
     # Load new/old threads and compute deltas
     new_threads = fetch_subback()
     old_threads = json.loads(redis_client.get('dumps').decode('utf-8'))
@@ -165,18 +46,8 @@ def run_pipeline(threshold):
     line_push_message(f'{summary} ({count_x_characters_limited(summary)})'
                       if summary else 'Pipeline produced empty messsage.')
 
-
-class handler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        run_pipeline(0)
-        self.send_response(200)
-        self.send_header('Content-type','text/plain')
-        self.end_headers()
-        self.wfile.write('Hello, world!'.encode('utf-8'))
-        return
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("threshold", type=int, help="threshold for push")
     args = parser.parse_args()
-    run_pipeline(args.threshold)
+    process_thread_deltas(args.threshold)
