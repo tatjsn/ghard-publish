@@ -2,7 +2,7 @@ import linebot.v3.messaging
 import os
 import json
 
-def line_push_message(message):
+def push_message(message):
     configuration = linebot.v3.messaging.Configuration(
         access_token = os.environ['LINE_TOKEN']
     )

@@ -1,13 +1,10 @@
 from http.server import BaseHTTPRequestHandler
 import os
-import re
 import json
-import html
 import redis
 import argparse
 from dotenv import load_dotenv
-from counter import count_x_characters_limited
-from line import line_push_message
+from twitter import post_message
 from llm import generate_summary
 from forum import fetch_subback, compute_deltas, deltas_to_message
 
@@ -41,11 +38,10 @@ def process_thread_deltas(threshold):
     top_ten = json.dumps(deltas_sorted[:10], ensure_ascii=False)
     redis_client.set('top_ten', top_ten)
 
-
     titles = json.dumps([item["title"] for item in deltas_sorted[:10]])
     summary = generate_summary(titles)
-    line_push_message(f'{summary} ({count_x_characters_limited(summary)})'
-                      if summary else 'Pipeline produced empty messsage.')
+    post_message(summary)
+    
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
