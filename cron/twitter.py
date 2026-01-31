@@ -10,19 +10,36 @@ def post_message(message):
         access_token_secret=os.environ['X_SECRET']
     )
 
-    chunks = split_by_weight(message, 280)
-    chunk_wls = [weight_length(chunk) for chunk in chunks]
+    post_with_retry(client, message, 280, 3)
 
-    print(f'Posting {chunk_wls}')
+def post_with_retry(client, message, limit, retry):
+    # stop conditions
+    if retry < 0 or limit <= 0:
+        print("Skip posting: retry < 0 or limit <= 0")
+        return
 
-    reply_to = None
+    try:
+        chunks = split_by_weight(message, limit)
+        chunk_wls = [weight_length(chunk) for chunk in chunks]
+        print(f'Posting {chunk_wls}')
 
-    for chunk in chunks:
-        tweet = client.create_tweet(
-            text=chunk,
-            in_reply_to_tweet_id=reply_to
+        reply_to = None
+        for chunk in chunks:
+            tweet = client.create_tweet(
+                text=chunk,
+                in_reply_to_tweet_id=reply_to
+            )
+            reply_to = tweet.data["id"]
+
+    except Exception as e:
+        print(f"Error while posting (limit={limit}, retry={retry}): {e}")
+        # recursively retry with smaller limit
+        post_with_retry(
+            client=client,
+            message=message,
+            limit=limit - 4,
+            retry=retry - 1
         )
-        reply_to = tweet.data["id"]
 
 
 def split_by_weight(s: str, max_weight: int) -> list[str]:
