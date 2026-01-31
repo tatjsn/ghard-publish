@@ -11,6 +11,9 @@ def post_message(message):
     )
 
     chunks = split_by_weight(message, 280)
+    chunk_wls = [weight_length(chunk) for chunk in chunks]
+
+    print(f'Posting {chunk_wls}')
 
     reply_to = None
 
@@ -44,7 +47,7 @@ def split_by_weight(s: str, max_weight: int) -> list[str]:
 
     return result
 
-    
+
 
 def weight_length(text: str) -> int:
     """
