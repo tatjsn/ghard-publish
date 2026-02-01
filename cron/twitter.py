@@ -65,28 +65,40 @@ def split_by_weight(s: str, max_weight: int) -> list[str]:
     return result
 
 
+# twitter-text v3 parameters
+SCALE = 100
+DEFAULT_WEIGHT = 200
+
+# Ranges taken directly from
+# https://github.com/twitter/twitter-text/blob/master/config/v3.json
+RANGES = [
+    (0x0000, 0x10FF),   # includes basic Latin + many scripts
+    (0x2000, 0x200D),
+    (0x2010, 0x202F),
+    (0x2050, 0x205F),
+]
 
 def weight_length(text: str) -> int:
     """
-    Limited X-style character counter:
-      - Normalize text to Unicode NFC
-      - CJK characters count as 2
-      - All other characters count as 1
+    Twitter-text v3–style weighted length counter:
+      - NFC normalization
+      - Characters in configured ranges count as 1
+      - All others count as 2
       - No URL shortening
-      - No emoji special handling
+      - No extra emoji handling
     """
     text = unicodedata.normalize("NFC", text)
-    count = 0
+    total_weight = 0
 
     for ch in text:
-        if (
-            "\u4E00" <= ch <= "\u9FFF" or  # CJK Unified Ideographs
-            "\u3400" <= ch <= "\u4DBF" or  # CJK Extension A
-            "\u3040" <= ch <= "\u30FF" or  # Hiragana & Katakana
-            "\uAC00" <= ch <= "\uD7AF"     # Hangul Syllables
-        ):
-            count += 2
-        else:
-            count += 1
+        cp = ord(ch)
+        weight = DEFAULT_WEIGHT
 
-    return count
+        for start, end in RANGES:
+            if start <= cp <= end:
+                weight = 100
+                break
+
+        total_weight += weight
+
+    return total_weight // SCALE
