@@ -3,10 +3,11 @@ import os
 import json
 import redis
 import argparse
+import time
 from dotenv import load_dotenv
 from twitter import post_message
 from llm import generate_summary
-from forum import fetch_subback, compute_deltas, deltas_to_message
+from forum import fetch_subback, compute_deltas
 
 if __name__ == '__main__':
     load_dotenv()
@@ -21,6 +22,10 @@ def process_thread_deltas(threshold):
 
     # Abort if total new posts is under threshold
     total = sum(d['new_posts'] for d in deltas)
+
+    unix_time = int(time.time())
+    redis_client.set('status', f'{unix_time},{total},{threshold}')
+
     if total < threshold:
         print(f'Abort: Total={total}')
         return
@@ -31,9 +36,6 @@ def process_thread_deltas(threshold):
 
     # Send top 10 as message and save to redis
     deltas_sorted = sorted(deltas, key=lambda x: x['new_posts'], reverse=True)
-
-    message = deltas_to_message(deltas_sorted)
-    redis_client.set('legacy_message', message if message else 'Pipeline produced empty messsage.')
 
     top_ten = json.dumps(deltas_sorted[:10], ensure_ascii=False)
     redis_client.set('top_ten', top_ten)
