@@ -1,4 +1,4 @@
-package.json
-package-lock.json
-.venv
-cron
+/*
+!api
+!vercel.json
+!requirements.txt
