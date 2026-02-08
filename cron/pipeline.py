@@ -5,7 +5,7 @@ import redis
 import argparse
 import time
 from dotenv import load_dotenv
-from twitter import post_message
+from line import push_message
 from llm import generate_summary
 from forum import fetch_subback, compute_deltas
 
@@ -42,8 +42,8 @@ def process_thread_deltas(threshold):
 
     titles = json.dumps([item["title"] for item in deltas_sorted[:10]])
     summary = generate_summary(titles)
-    post_message(summary)
-    
+    push_message(summary)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
