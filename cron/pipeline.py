@@ -37,8 +37,9 @@ def process_thread_deltas(threshold):
     # Send top 10 as message and save to redis
     deltas_sorted = sorted(deltas, key=lambda x: x['new_posts'], reverse=True)
 
-    top_ten = json.dumps(deltas_sorted[:10], ensure_ascii=False)
-    redis_client.set('top_ten', top_ten)
+    deltas_sorted_json = json.dumps(deltas_sorted, ensure_ascii=False)
+    redis_client.set('deltas_sorted', deltas_sorted_json)
+    redis_client.set('deltas_status', f'{unix_time},{total}')
 
     titles = json.dumps([item["title"] for item in deltas_sorted[:10]])
     summary = generate_summary(titles)
