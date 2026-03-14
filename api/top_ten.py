@@ -3,6 +3,7 @@ import os
 import json
 import redis
 import time
+import re
 from dotenv import load_dotenv
 
 if __name__ == '__main__':
@@ -15,9 +16,16 @@ def render():
     top_ten = json.loads(redis_client.get('top_ten').decode('utf-8'))
     now_time = int(time.time())
     delta_time_m = (now_time - unix_time) // 60
+
+    pattern = re.compile(r'■■速報＠ゲーハー板')
+    all_new_posts = sum(d["new_posts"] for d in top_ten)
+    matched_new_posts = sum(d["new_posts"] for d in top_ten if pattern.search(d["title"]))
+    matched_percent = (matched_new_posts / all_new_posts * 100) if all_new_posts else 0
+
     return '<body>' + \
         f'<p>Last update: {delta_time_m} minutes ago' + \
         f'<p><label>Progress: <progress value="{total}" max="{threshold}">{total}/{threshold}</progress></label>' + \
+        f'<p><label>Sokuho {matched_percent:.2f}%: <progress value="{matched_new_posts}" max="{all_new_posts}">{matched_new_posts}/{all_new_posts}</progress></label>' + \
         ''.join([f'<p>{d["title"]} ({d["new_posts"]})' for d in top_ten])
 
 
